@@ -1,7 +1,20 @@
-# core/schema.py
+"""
+core.schema
+===========
+
+Canonical event schema for messages consumed from ActiveMQ queues.
+
+This module defines the normalized repository event model shared
+between the Alfresco Event Router and downstream consumers.
+
+Design goals:
+- Strict but flexible validation
+- Backward compatibility with evolving producers
+- Clear separation between transport schema and business logic
+"""
 
 from typing import Optional, Union
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, field_validator
 
 
 class RepoEvent(BaseModel):

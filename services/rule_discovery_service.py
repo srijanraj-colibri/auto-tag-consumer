@@ -1,5 +1,3 @@
-# services/rule_discovery_service.py
-
 import logging
 import requests
 from typing import Optional
@@ -55,9 +53,6 @@ def find_nearest_rule_csv(event_path: str) -> Optional[str]:
     return None
 
 
-# ------------------------------------------------------------------
-# Helpers
-# ------------------------------------------------------------------
 
 def _extract_content_parts(event_path: str) -> list[str]:
     """

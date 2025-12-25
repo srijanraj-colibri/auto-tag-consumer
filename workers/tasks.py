@@ -27,11 +27,9 @@ def auto_tag_node(self, payload: dict) -> bool:
     """
 
     try:
-        # ✅ Canonical schema validation
         event = RepoEvent.model_validate(payload)
 
     except ValidationError as e:
-        # ❌ Invalid payload → drop safely
         logger.error(
             "Invalid RepoEvent schema received in worker",
             extra={"payload": payload},
@@ -39,7 +37,6 @@ def auto_tag_node(self, payload: dict) -> bool:
         )
         return True  # ACK upstream (do not retry)
 
-    # 🔑 Correct idempotency key
     key = f"{event.nodeRef}:{event.modifiedAt}"
 
     if already_processed(key):
@@ -63,7 +60,6 @@ def auto_tag_node(self, payload: dict) -> bool:
         },
     )
 
-    # 1️⃣ Discover nearest rule CSV in Alfresco
     logger.info("finding nearest rule csv file")
     csv_node_id = find_nearest_rule_csv(event.path)
     
@@ -74,7 +70,6 @@ def auto_tag_node(self, payload: dict) -> bool:
     
     logger.info("found rule csv", extra={"nodeID": csv_node_id})
 
-    # 2️⃣ Load rules from CSV
     rules = load_rules(csv_node_id)
 
     if not rules:
@@ -84,18 +79,14 @@ def auto_tag_node(self, payload: dict) -> bool:
         )
         mark_processed(key)
         return True
-    print("check rules", rules)
-    # 3️⃣ Match rules against file path
-    tags = match_rule(event.path, rules)
-    
-    print("check tags", tags)
+
+    tags = match_rule(event.path, rules)    
 
     if not tags:
         logger.info("No matching rules", extra={"path": event.path})
         mark_processed(key)
         return True
 
-    # 4️⃣ Apply tags via Alfresco API
     apply_tags(event.nodeRef, tags)
 
     logger.info(
@@ -106,6 +97,5 @@ def auto_tag_node(self, payload: dict) -> bool:
         },
     )
 
-    # 5️⃣ Mark processed
     mark_processed(key)
     return True

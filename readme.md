@@ -113,9 +113,9 @@ CELERY_RESULT_BACKEND=redis://redis:6379/1
 
 # Worker
 WORKER_TIMEOUT=600
+```
 
-
-🐳 Running with Docker Compose
+## 🐳 Running with Docker Compose
 Prerequisites
 
 Docker ≥ 20.x
@@ -137,15 +137,9 @@ docker compose \
 This will start:
 
 ActiveMQ (STOMP enabled)
-
 Redis
-
 Python STOMP consumer
-
 Celery worker(s)
 
 Scale workers
-docker compose \
-  --env-file .env \
-  -f docker/docker-compose.yml \
-  up --scale worker=3
+docker compose --env-file .env -f docker/docker-compose.yaml up --scale worker=2

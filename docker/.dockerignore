@@ -1,9 +1,23 @@
+# Environment / secrets
 .env
+
+# Virtual environments
+venv/
+env/
+.venv/
+.virtualenv/
+
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# VCS
 .git
 .gitignore
-.vscode
-.idea
+
+# OS / editor junk
+.DS_Store
+.vscode/
+.idea/

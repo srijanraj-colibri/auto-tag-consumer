@@ -1,5 +1,3 @@
-# services/tag_service.py
-
 import logging
 import requests
 from requests.auth import HTTPBasicAuth
@@ -22,10 +20,6 @@ class AlfrescoTagService:
             settings.ALFRESCO_PASSWORD,
         )
 
-    # ---------------------------------------------------------
-    # Public API
-    # ---------------------------------------------------------
-
     def apply_tags(self, node_ref: str, tags: List[str]) -> None:
         """
         Attach tags to a node. Safe for reprocessing.
@@ -45,9 +39,6 @@ class AlfrescoTagService:
         for tag in to_add:
             self._add_tag(node_id, tag)
 
-    # ---------------------------------------------------------
-    # Internal helpers
-    # ---------------------------------------------------------
 
     def _extract_node_id(self, node_ref: str) -> str:
         """
@@ -94,9 +85,6 @@ class AlfrescoTagService:
         r.raise_for_status()
 
 
-# ---------------------------------------------------------
-# Module-level helper used by worker
-# ---------------------------------------------------------
 
 _tag_service = AlfrescoTagService()
 

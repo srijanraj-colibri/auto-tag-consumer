@@ -1,31 +1,57 @@
-import time
-import signal
-import stomp
+"""
+consumer.main
+=============
+
+Application entry point for the queue-based auto-tag consumer.
+
+This service consumes messages from a feature-specific ActiveMQ queue,
+delegates processing to Celery workers, and manages lifecycle concerns
+such as startup, shutdown, and broker connectivity.
+"""
+
 import logging
+import signal
+import sys
+import time
+from typing import Optional
+
+import stomp
 
 from core.settings import settings
 from core.logging_config import setup_logging
-from consumer.listener import UploadEventListener   
+from consumer.listener import QueueEventListener
 
-shutdown = False
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("autotag.consumer.main")
 
-
-def stop(*_):
-    global shutdown
-    shutdown = True
-    logger.info("Shutdown signal received")
+_shutdown_requested: bool = False
 
 
-def main():
-    setup_logging(settings.LOG_LEVEL)
+def _handle_shutdown(signum, frame) -> None:
+    """
+    Handle termination signals.
 
-    logger.info("Starting upload event consumer")
+    Parameters
+    ----------
+    signum : int
+        Signal number.
+    frame : frame
+        Current stack frame.
+    """
+    global _shutdown_requested
+    logger.warning("Shutdown signal received", extra={"signal": signum})
+    _shutdown_requested = True
 
-    signal.signal(signal.SIGTERM, stop)
-    signal.signal(signal.SIGINT, stop)
 
-    conn = stomp.Connection12(
+def _create_connection() -> stomp.Connection12:
+    """
+    Create and configure a STOMP connection.
+
+    Returns
+    -------
+    stomp.Connection12
+        Configured STOMP connection.
+    """
+    return stomp.Connection12(
         [(settings.ACTIVEMQ_HOST, settings.ACTIVEMQ_PORT)],
         heartbeats=(
             settings.ACTIVEMQ_HEARTBEAT_OUT,
@@ -33,33 +59,72 @@ def main():
         ),
     )
 
-    conn.set_listener(
-        "upload-consumer",
-        UploadEventListener(conn),
-    )
 
-    conn.connect(
-        settings.ACTIVEMQ_USER,
-        settings.ACTIVEMQ_PASSWORD,
-        wait=True,
-    )
+def main() -> None:
+    """
+    Application entry point.
+    """
+    setup_logging(settings.LOG_LEVEL)
 
-    conn.subscribe(
-        destination=settings.ACTIVEMQ_QUEUE,
-        id="upload-consumer",
-        ack="client-individual",
-        headers={
-            "activemq.prefetchSize": str(settings.ACTIVEMQ_PREFETCH)
-        },
-    )
+    logger.info("Starting queue event consumer")
 
-    logger.info("Upload consumer started")
+    signal.signal(signal.SIGTERM, _handle_shutdown)
+    signal.signal(signal.SIGINT, _handle_shutdown)
 
-    while not shutdown:
-        time.sleep(1)
+    conn: Optional[stomp.Connection12] = None
 
-    logger.info("Disconnecting from ActiveMQ")
-    conn.disconnect()
+    try:
+        conn = _create_connection()
+
+        conn.set_listener(
+            "queue-consumer",
+            QueueEventListener(conn),
+        )
+
+        conn.connect(
+            login=settings.ACTIVEMQ_USER,
+            passcode=settings.ACTIVEMQ_PASSWORD,
+            wait=True,
+        )
+
+        logger.info(
+            "Connected to ActiveMQ",
+            extra={
+                "host": settings.ACTIVEMQ_HOST,
+                "port": settings.ACTIVEMQ_PORT,
+            },
+        )
+
+        conn.subscribe(
+            destination=settings.ACTIVEMQ_QUEUE,
+            id="queue-consumer",
+            ack="client-individual",
+            headers={
+                "activemq.prefetchSize": str(settings.ACTIVEMQ_PREFETCH),
+            },
+        )
+
+        logger.info(
+            "Subscribed to queue",
+            extra={
+                "queue": settings.ACTIVEMQ_QUEUE,
+                "prefetch": settings.ACTIVEMQ_PREFETCH,
+            },
+        )
+
+        while not _shutdown_requested:
+            time.sleep(1)
+
+    except Exception:
+        logger.exception("Fatal consumer error")
+        sys.exit(1)
+
+    finally:
+        if conn and conn.is_connected():
+            logger.info("Disconnecting from ActiveMQ")
+            conn.disconnect()
+
+        logger.info("Queue consumer stopped cleanly")
 
 
 if __name__ == "__main__":

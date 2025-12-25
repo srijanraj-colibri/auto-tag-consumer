@@ -1,5 +1,3 @@
-# services/rule_loader_service.py
-
 import csv
 import io
 import logging
@@ -39,7 +37,6 @@ def load_rules(csv_node_id: str) -> Dict[str, List[str]]:
         if not row:
             continue
 
-        # Skip comments
         if row[0].strip().startswith("#"):
             continue
 
@@ -71,9 +68,6 @@ def load_rules(csv_node_id: str) -> Dict[str, List[str]]:
     return rules
 
 
-# ---------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------
 
 def _normalize_path(path: str) -> str:
     return path.strip().lstrip("/")
