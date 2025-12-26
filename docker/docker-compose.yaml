@@ -10,13 +10,12 @@ services:
   #     - "61613:61613"
   #     - "8161:8161"
 
-  redis:
+  auto-tag-redis:
     image: redis:7
-    container_name: redis
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
 
-  consumer:
+  auto-tag-consumer:
     build:
       context: ..
       dockerfile: docker/consumer.Dockerfile
@@ -47,10 +46,10 @@ services:
 
     depends_on:
       # - activemq
-      - redis
+      - auto-tag-redis
     restart: unless-stopped
 
-  worker:
+  auto-tag-worker:
     build:
       context: ..
       dockerfile: docker/worker.Dockerfile
@@ -68,7 +67,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL}
 
     depends_on:
-      - redis
+      - auto-tag-redis
     restart: unless-stopped
     deploy:
       replicas: 1

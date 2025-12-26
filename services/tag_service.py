@@ -11,6 +11,11 @@ logger = logging.getLogger(__name__)
 class AlfrescoTagService:
     """
     Thin Alfresco REST client focused only on tagging.
+
+    Design choice:
+    - Tags are added one by one
+    - Existing tags are NOT pre-fetched
+    - HTTP 409 (Conflict) is treated as success
     """
 
     def __init__(self):
@@ -22,21 +27,18 @@ class AlfrescoTagService:
 
     def apply_tags(self, node_ref: str, tags: List[str]) -> None:
         """
-        Attach tags to a node. Safe for reprocessing.
+        Attach tags to a node.
+
+        Idempotent behavior:
+        - 201 / 200 → tag created
+        - 409 → tag already exists (ignored)
         """
-        node_id = self._extract_node_id(node_ref)
-
-        existing = self._get_existing_tags(node_id)
-        to_add = [t for t in tags if t not in existing]
-
-        if not to_add:
-            logger.info(
-                "All tags already present, skipping",
-                extra={"nodeRef": node_ref},
-            )
+        if not tags:
             return
 
-        for tag in to_add:
+        node_id = self._extract_node_id(node_ref)
+
+        for tag in tags:
             self._add_tag(node_id, tag)
 
 
@@ -45,18 +47,6 @@ class AlfrescoTagService:
         workspace://SpacesStore/<uuid> → <uuid>
         """
         return node_ref.split("/")[-1]
-
-    def _get_existing_tags(self, node_id: str) -> List[str]:
-        url = (
-            f"{self.base_url}"
-            f"/api/-default-/public/alfresco/versions/1"
-            f"/nodes/{node_id}/tags"
-        )
-
-        r = requests.get(url, auth=self.auth, timeout=10)
-        r.raise_for_status()
-
-        return [e["entry"]["tag"] for e in r.json().get("list", {}).get("entries", [])]
 
     def _add_tag(self, node_id: str, tag: str) -> None:
         url = (
@@ -74,16 +64,15 @@ class AlfrescoTagService:
             timeout=10,
         )
 
-        # 409 = already exists (safe)
+        # Success or already exists → safe
         if r.status_code in (200, 201, 409):
             logger.info(
-                "Tag applied",
+                "Tag applied or already exists",
                 extra={"nodeId": node_id, "tag": tag},
             )
             return
 
         r.raise_for_status()
-
 
 
 _tag_service = AlfrescoTagService()

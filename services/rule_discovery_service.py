@@ -35,7 +35,7 @@ def find_nearest_rule_csv(event_path: str) -> Optional[str]:
     for depth in range(1, len(content_parts)):
         rule_folder_path = f"{RULE_ROOT}/" + "/".join(content_parts[:depth])
         rule_folder_id = resolve_path(rule_folder_path)
-
+        
         if not rule_folder_id:
             continue
 
