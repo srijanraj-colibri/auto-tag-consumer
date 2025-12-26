@@ -62,7 +62,6 @@ class QueueEventListener(stomp.ConnectionListener):
         try:
             payload = json.loads(frame.body)
 
-            # ✅ Canonical schema validation
             event = RepoEvent.model_validate(payload)
 
             if event.eventType != "BINARY_CHANGED":

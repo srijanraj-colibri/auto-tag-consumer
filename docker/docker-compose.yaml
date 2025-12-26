@@ -1,6 +1,6 @@
 version: "3.9"
 
-name: queue-consumer 
+name: auto-tag-queue-consumer 
 services:
 
   # activemq:

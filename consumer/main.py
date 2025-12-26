@@ -68,9 +68,6 @@ def main() -> None:
 
     logger.info("Starting queue event consumer")
 
-    # ------------------------------------------------------------------
-    # Signal handling (Docker / Kubernetes friendly)
-    # ------------------------------------------------------------------
     signal.signal(signal.SIGTERM, _handle_shutdown)
     signal.signal(signal.SIGINT, _handle_shutdown)
 
@@ -115,9 +112,6 @@ def main() -> None:
             },
         )
 
-        # ------------------------------------------------------------------
-        # Main loop
-        # ------------------------------------------------------------------
         while not _shutdown_requested:
             time.sleep(1)
 

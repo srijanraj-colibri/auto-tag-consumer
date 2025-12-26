@@ -1,5 +1,3 @@
-# services/rule_matcher.py
-
 from typing import Dict, List
 
 
@@ -24,13 +22,9 @@ def match_rule(event_path: str, rules: Dict[str, List[str]]) -> List[str]:
         if _normalize(rule_path) == _normalize(relative_path):
             matched.extend(tags)
 
-    # Deduplicate while preserving order
     return list(dict.fromkeys(matched))
 
 
-# ---------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------
 
 def _extract_relative_path(event_path: str) -> str | None:
     """
@@ -42,15 +36,12 @@ def _extract_relative_path(event_path: str) -> str | None:
 
     parts = [p for p in event_path.strip("/").split("/") if p]
 
-    # Drop "Company Home" if present
     if parts and parts[0] == "Company Home":
         parts = parts[1:]
 
-    # We now expect: [content_root, course, ...]
     if len(parts) < 3:
         return None
 
-    # Drop content_root + course
     return "/".join(parts[2:])
 
 

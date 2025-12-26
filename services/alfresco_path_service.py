@@ -1,5 +1,3 @@
-# services/alfresco_path_service.py
-
 import logging
 import requests
 from typing import Optional
